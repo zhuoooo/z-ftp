@@ -1,11 +1,11 @@
-import {initFTP, put} from './ftp/init';
+import Ftp from './ftp';
 import * as sftp from './sftp/init';
 const path = require('path');
 
-initFTP();
+let ftp = new Ftp();
 
 async function upload () {
-    put(path.resolve(__dirname, './README.md'), 'readme.md').then(() =>{
+    ftp.upload(path.resolve(__dirname, './README.md'), 'readme.md').then(() =>{
         console.log('上传成功！');
     }).catch(() => {
         console.log('上传失败！');
