@@ -2,27 +2,25 @@ import Ftp from './ftp';
 import Sftp from './sftp'
 const path = require('path');
 
-let ftp = new Ftp();
+let ftp = new Ftp({
+    root: './zhuo'
+});
 let sftp = new Sftp({
     root: './zqh'
 })
 
-// ftp.connect();
-
 async function upload() {
-    ftp.upload(path.resolve(__dirname, '../README.md')).then(() => {
+    await ftp.connect();
+    await ftp.delete('./zhuo/zqh')
+    await ftp.upload(path.resolve(__dirname, '../README.md'), 'zhuo/zqh').then(() => {
         console.log('上传成功！');
-    }).catch(() => {
+    }).catch((err) => {
+        console.error(err)
         console.log('上传失败！');
     })
 
-}
-
-async function list () {
-    await ftp.connect();
     console.table(await ftp.list())
 }
-list()
 
 // upload();
 
@@ -37,7 +35,10 @@ async function supload () {
 }
 // supload()
 
-module.exports = ftp;
+module.exports = {
+    ftp, 
+    sftp
+};
 
 
 // let LoaderRunner = require('./loader_runner');

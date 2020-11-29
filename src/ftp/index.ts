@@ -49,12 +49,17 @@ export default class Ftp extends Uploader {
     }
 
     // 先写着接口，要不要再说
-    download () {
+    download() {
 
     }
 
-    async delete (file) {
+    async delete(file) {
+
         return new Promise((resolve, reject) => {
+            if (!file) {
+                throw new Error('必须输入删除的文件或文件路径')
+            }
+
             this.client.delete(file, err => {
                 reject(err)
             })
@@ -67,9 +72,8 @@ export default class Ftp extends Uploader {
      * 上传本地文件到服务器
      * @param currentFile 上传文件的路径
      */
-    async upload(currentFile): Promise<{}> {
+    async upload(currentFile, remoteDir?): Promise<{}> {
 
-        // TODO 判断目标地址是否存在文件
         let isExitCurFile = await fse.pathExists(currentFile)
 
         if (!isExitCurFile) {
@@ -77,7 +81,10 @@ export default class Ftp extends Uploader {
             throw new Error(`不存在当前路径的文件：${currentFile}，请重新输入文件路径！`)
         }
 
-        let fileName = path.basename(currentFile)
+        let remote = remoteDir ?? this.options.root;
+
+        let fileName = path.join(remote, path.basename(currentFile))
+
         const rs = fs.createReadStream(currentFile)
 
         return new Promise((resolve, reject) => {
@@ -93,7 +100,7 @@ export default class Ftp extends Uploader {
      * 查看文件夹文件
      * @param r 查看服务器上的指定的文件夹
      */
-    async list (r?: string) {
+    async list(r?: string) {
         let root = r ?? this.options.root
 
         return new Promise((resolve, reject) => {
@@ -101,7 +108,7 @@ export default class Ftp extends Uploader {
                 if (err) {
                     reject(err)
                 }
-                resolve(list) 
+                resolve(list)
             })
         })
     }
