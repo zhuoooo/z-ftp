@@ -15,9 +15,19 @@ export default class Uploader extends EventEmitter {
         throw new Error('connect must be override')
     }
 
-    async upload(filePath?): Promise<{}> {
+    async upload(filePath?, remoteDir?): Promise<{}> {
 
-        throw new Error('startUpload must be override')
+        throw new Error('upload must be override')
+    }
+
+    delete (remoteFile?) {
+
+        throw new Error('delete must be override')
+    }
+
+    list () {
+
+        throw new Error('list must be override')
     }
 
     onReady() {

@@ -1,20 +1,43 @@
 import Ftp from './ftp';
-import * as sftp from './sftp/init';
+import Sftp from './sftp'
 const path = require('path');
 
 let ftp = new Ftp();
+let sftp = new Sftp({
+    root: './zqh'
+})
 
-async function upload () {
-    ftp.upload(path.resolve(__dirname, './README.md'), 'readme.md').then(() =>{
+// ftp.connect();
+
+async function upload() {
+    ftp.upload(path.resolve(__dirname, '../README.md')).then(() => {
         console.log('上传成功！');
     }).catch(() => {
         console.log('上传失败！');
-        
     })
-    
+
 }
 
-upload();
+async function list () {
+    await ftp.connect();
+    console.table(await ftp.list())
+}
+list()
+
+// upload();
+
+async function supload () {
+    await sftp.connect()
+    console.log('链接成功');
+
+    await sftp.upload(path.resolve(__dirname, '../README.md'))
+    let list = await sftp.list()
+
+    console.table(list)
+}
+// supload()
+
+module.exports = ftp;
 
 
 // let LoaderRunner = require('./loader_runner');

@@ -59,7 +59,7 @@ export default class Ftp extends Uploader {
                 reject(err)
             })
 
-            resolve()
+            resolve({})
         })
     }
 
@@ -96,7 +96,7 @@ export default class Ftp extends Uploader {
     async list (r?: string) {
         let root = r ?? this.options.root
 
-        let list = await new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             this.client.list(root, (err, list) => {
                 if (err) {
                     reject(err)
@@ -104,7 +104,6 @@ export default class Ftp extends Uploader {
                 resolve(list) 
             })
         })
-        return list
     }
 
     /**
