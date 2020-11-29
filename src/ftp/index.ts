@@ -21,7 +21,7 @@ export default class Ftp extends Uploader {
 
     connect(): Promise<Record<string, any>> {
         return new Promise((resolve) => {
-            let client = new FtpClient()
+            let client = new ftp()
 
             client.connect({
                 host: this.options.host,
