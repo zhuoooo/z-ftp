@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "zftp": "bin/zftp.js"
+    "zftp": "bin/zftp.js",
+    "zsftp": "bin/zsftp.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

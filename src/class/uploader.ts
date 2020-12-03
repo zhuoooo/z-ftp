@@ -30,6 +30,10 @@ export default class Uploader extends EventEmitter {
         throw new Error('list must be override')
     }
 
+    close () {
+        
+    }
+
     onReady() {
         console.log('connected')
         this.emit('upload:ready')

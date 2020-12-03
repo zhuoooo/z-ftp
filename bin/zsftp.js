@@ -6,9 +6,9 @@ const inquirer = require('inquirer')
 const fse = require('fs-extra')
 const path = require('path')
 
-let { ftp } = require('../dist/index')
+let { sftp } = require('../dist/index')
 
-let accountPath = path.resolve(__dirname, '../ftp-account.json')
+let accountPath = path.resolve(__dirname, '../sftp-account.json')
 
 // TODO 登录管理？？？
 program
@@ -47,13 +47,13 @@ program
     let curAccount = getAccount()
 
     if(!validAccount()) {
-      console.log('未登录账号，请先执行zftp login进行登录');
+      console.log('未登录账号，请先执行zsftp login进行登录');
       return;
     }
 
-    await ftp.connect(curAccount)
-    await ftp.upload(path, root)
-    ftp.close()
+    await sftp.connect(curAccount)
+    await sftp.upload(path, root)
+    sftp.close()
   })
 
 program
@@ -65,16 +65,14 @@ program
     let root = opt.root
     let curAccount = getAccount()
 
-    console.log(curAccount);
-
     if(!validAccount()) {
-      console.log('未登录账号，请先执行zftp login进行登录');
+      console.log('未登录账号，请先执行zsftp login进行登录');
       return;
     }
 
-    await ftp.connect(curAccount)
-    await ftp.list(root)
-    ftp.close()
+    await sftp.connect(curAccount)
+    await sftp.list(root)
+    sftp.close()
   })
 
 program
@@ -83,7 +81,7 @@ program
   .action(opt => {
     
     fse.outputJSON(accountPath, {})
-    ftp.logout()
+    sftp.logout()
   })
 
 program.parse(process.argv)

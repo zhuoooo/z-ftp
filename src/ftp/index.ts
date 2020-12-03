@@ -113,6 +113,10 @@ export default class Ftp extends Uploader {
         })
     }
 
+    async close () {
+        this.client.logout()
+    }
+
     /**
      * 退出登录
      */

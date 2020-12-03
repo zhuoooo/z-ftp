@@ -70,6 +70,10 @@ export default class Sftp extends Uploader {
         return this.client.list(root)
     }
 
+    close () {
+        this.client.end()
+    }
+
     /**
      * 退出登录
      */
