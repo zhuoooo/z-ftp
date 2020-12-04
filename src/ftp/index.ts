@@ -2,6 +2,7 @@ const ftp = require('ftp') // 连接FTP
 const fs = require('fs')
 import fse from 'fs-extra'
 const path = require('path')
+import parseFiles from '../util/util'
 
 import Uploader from '../class/uploader'
 
@@ -10,12 +11,11 @@ const client = new ftp()
 export default class Ftp extends Uploader {
     init(opt) {
         this.options = Object.assign({
-            host: '192.168.1.3',
+            host: '',
             port: '21',
             user: '',
             password: '',
-            root: '.',
-            keepalive: 1000
+            root: '.'
         }, opt)
     }
 
@@ -70,10 +70,31 @@ export default class Ftp extends Uploader {
 
     /**
      * 上传本地文件到服务器
-     * @param currentFile 上传文件的路径
+     * @param [curPath] 上传文件的路径
      */
-    async upload(currentFile, remoteDir?): Promise<{}> {
+    async upload(curPath, remoteDir?): Promise<{}> {
+        let files = parseFiles(curPath),
+            uploadList: {}[] = []
+            
+        let remote = remoteDir ?? this.options.root;
 
+        files.forEach(file => {
+            let p = path.join(process.cwd(), file)
+            let tarDir = path.join(remote, file)
+
+            if (fs.statSync(p).isDirectory()) {
+                this.client.mkdir(tarDir, (err) => {
+                    if (err) console.error(err)
+                })
+                return
+            }
+            uploadList.push(this.put(file, path.dirname(tarDir)))
+        })
+        
+        return Promise.all(uploadList)
+    }
+
+    async put (currentFile, remoteDir?) {
         let isExitCurFile = await fse.pathExists(currentFile)
 
         if (!isExitCurFile) {
@@ -81,9 +102,7 @@ export default class Ftp extends Uploader {
             throw new Error(`不存在当前路径的文件：${currentFile}，请重新输入文件路径！`)
         }
 
-        let remote = remoteDir ?? this.options.root;
-
-        let fileName = path.join(remote, path.basename(currentFile))
+        let fileName = path.join(remoteDir, path.basename(currentFile))        
 
         const rs = fs.createReadStream(currentFile)
 

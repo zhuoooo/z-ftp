@@ -11,8 +11,8 @@ let sftp = new Sftp({
 
 async function upload() {
     await ftp.connect();
-    await ftp.delete('./zhuo/zqh')
-    await ftp.upload(path.resolve(__dirname, '../README.md'), 'zhuo/zqh').then(() => {
+
+    await ftp.upload('./src').then(() => {
         console.log('上传成功！');
     }).catch((err) => {
         console.error(err)
@@ -22,18 +22,24 @@ async function upload() {
     console.table(await ftp.list())
 }
 
-// upload();
+// upload()
+// let file = parseFiles('./README.md')
+
+// console.log(file);
 
 async function supload () {
     await sftp.connect()
     console.log('链接成功');
 
-    await sftp.upload(path.resolve(__dirname, '../README.md'))
-    let list = await sftp.list()
+    await sftp.upload('./src')
+    let list = await sftp.list('./zqh/src')
 
     console.table(list)
 }
-// supload()
+supload()
+
+
+
 
 module.exports = {
     ftp, 

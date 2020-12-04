@@ -26,6 +26,7 @@
     "commander": "^6.2.0",
     "fs-extra": "^9.0.1",
     "ftp": "^0.3.10",
+    "glob": "^7.1.6",
     "inquirer": "^7.3.3",
     "lodash": "^4.17.20",
     "ssh2-sftp-client": "^5.3.1",
