@@ -15,8 +15,7 @@ export default class Sftp extends Uploader {
             port: '22',
             username: '',
             password: '',
-            root: './',
-            keepalive: 1000
+            root: './'
         }, opt)
     }
 
@@ -64,7 +63,7 @@ export default class Sftp extends Uploader {
                 }
                 this.client.mkdir(tarDir)
                 return
-            }
+            }            
             uploadList.push(this.put(file, path.dirname(tarDir)))
         })
 
@@ -79,8 +78,7 @@ export default class Sftp extends Uploader {
             throw new Error(`不存在当前路径的文件：${currentFile}，请重新输入文件路径！`)
         }
 
-        let remote = path.join(remoteDir, path.basename(currentFile))
-        
+        let remote = path.join(remoteDir, path.basename(currentFile))        
 
         return this.client.fastPut(currentFile, remote)
     }
@@ -96,14 +94,14 @@ export default class Sftp extends Uploader {
     }
 
     close() {
-        this.client.end()
+        // this.client?.end?.()
     }
 
     /**
      * 退出登录
      */
     async logout() {
-        this.client.end()
+        this.client?.end?.()
         this.onDestroyed()
     }
 

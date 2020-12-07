@@ -2,12 +2,8 @@ import Ftp from './ftp';
 import Sftp from './sftp'
 const path = require('path');
 
-let ftp = new Ftp({
-    root: './zhuo'
-});
-let sftp = new Sftp({
-    root: './zqh'
-})
+let ftp = new Ftp({})
+let sftp = new Sftp({})
 
 async function upload() {
     await ftp.connect();
@@ -36,13 +32,13 @@ async function supload () {
 
     console.table(list)
 }
-supload()
+// supload()
 
 
 
 
 module.exports = {
-    ftp, 
+    ftp,
     sftp
 };
 
