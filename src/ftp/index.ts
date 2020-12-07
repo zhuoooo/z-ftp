@@ -133,14 +133,14 @@ export default class Ftp extends Uploader {
     }
 
     async close () {
-        this.client.logout()
+        this.client.end()
     }
 
     /**
      * 退出登录
      */
     async logout() {
-        this.client.logout()
+        this.client.end()
         this.onDestroyed()
     }
 
