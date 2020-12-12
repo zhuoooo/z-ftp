@@ -105,3 +105,4 @@ dist
 
 ftp-account.json
 sftp-account.json
+*.log

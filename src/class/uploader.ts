@@ -3,74 +3,74 @@ let EventEmitter = require('events');
 
 export default class Uploader extends EventEmitter {
     constructor(opt = {}) {
-        super()
-        this.init(opt)
+        super();
+        this.init(opt);
     }
 
-    init(opt) {
-        this.options = opt
+    public init(opt) {
+        this.options = opt;
     }
 
-    async connect(): Promise<Record<string, any>> {
-        throw new Error('connect must be override')
+    public async connect(): Promise<Record<string, any>> {
+        throw new Error('connect must be override');
     }
 
-    async upload(filePath?, remoteDir?): Promise<{}> {
+    public async upload(filePath?, remoteDir?): Promise<{}> {
 
-        throw new Error('upload must be override')
+        throw new Error('upload must be override');
     }
 
-    delete (remoteFile?) {
+    public delete (remoteFile?) {
 
-        throw new Error('delete must be override')
+        throw new Error('delete must be override');
     }
 
-    list () {
+    public list () {
 
-        throw new Error('list must be override')
+        throw new Error('list must be override');
     }
 
-    close () {
+    public close () {
         
     }
 
-    onReady() {
-        console.log('connected')
-        this.emit('upload:ready')
+    public onReady() {
+        console.log('connected');
+        this.emit('upload:ready');
     }
 
-    onStart() {
+    public onStart() {
         console.log('start upload');
-        this.emit('upload:start', this.options)
+        this.emit('upload:start', this.options);
     }
 
-    onSuccess() {
-        console.log('upload success')
-        this.emit('upload:success')
+    public onSuccess() {
+        console.log('upload success');
+        this.emit('upload:success');
     }
 
-    onFailure(e) {
-        console.error('upload fail', e)
-        this.emit('upload:failure', this.options, e)
+    public onFailure(e) {
+        console.error('upload fail', e);
+        this.emit('upload:failure', this.options, e);
     }
 
-    onFileUpload(file) {
-        this.emit('upload:file', this.options, file)
+    public onFileUpload(file) {
+        this.emit('upload:file', this.options, file);
     }
 
     /**
      * 提供接口方便在销毁前做业务处理
      */
-    onBeforeDestroy() {
+    public onBeforeDestroy() {
         this.emit('upload:beforedestroy');
     }
 
-    onDestroyed() {
+    public onDestroyed() {
 
         this.emit('upload:destroy');
     }
 
-    destroy() {
+    public destroy() {
         if (this.destroyed) {
             this.onBeforeDestroy();
             this.options = null;
