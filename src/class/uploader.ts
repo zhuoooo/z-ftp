@@ -1,7 +1,21 @@
+/** 
+ * @file 实现上传的基类
+ */
 
 let EventEmitter = require('events');
+import { logger } from '../util/log';
+
+export interface IUploader {
+    connect();
+    upload(filePath?: string, remoteDir?: string): Promise<Record<string, any>>;
+    delete(remoteFile?: string);
+    list();
+    close();
+    mkdir(remote: string);
+}
 
 export default class Uploader extends EventEmitter {
+
     constructor(opt = {}) {
         super();
         this.init(opt);
@@ -11,50 +25,28 @@ export default class Uploader extends EventEmitter {
         this.options = opt;
     }
 
-    public async connect(): Promise<Record<string, any>> {
-        throw new Error('connect must be override');
-    }
-
-    public async upload(filePath?, remoteDir?): Promise<{}> {
-
-        throw new Error('upload must be override');
-    }
-
-    public delete (remoteFile?) {
-
-        throw new Error('delete must be override');
-    }
-
-    public list () {
-
-        throw new Error('list must be override');
-    }
-
-    public close () {
-        
-    }
-
     public onReady() {
-        console.log('connected');
+        logger.info('连接成功');
         this.emit('upload:ready');
     }
 
     public onStart() {
-        console.log('start upload');
+        logger.info('开始上传');
         this.emit('upload:start', this.options);
     }
 
-    public onSuccess() {
-        console.log('upload success');
+    public onSuccess(file?) {
+        logger.info(`上传成功：${file}`);
         this.emit('upload:success');
     }
 
     public onFailure(e) {
-        console.error('upload fail', e);
+        logger.error(`上传失败：${e}`);
         this.emit('upload:failure', this.options, e);
     }
 
     public onFileUpload(file) {
+        logger.info(`准备上传文件：${file}`);
         this.emit('upload:file', this.options, file);
     }
 

@@ -4,15 +4,19 @@ import path from 'path';
 import { logger, setLogInfo } from '../util/log';
 import { getFiles, getDirectory, parseFiles, existFile } from '../util/util';
 
-import Uploader from '../class/uploader'
+import Uploader, { IUploader } from '../class/uploader'
 
-export default class Sftp extends Uploader {
+export default class Sftp extends Uploader implements IUploader {
     constructor(opt) {
         super(opt);
         this.client = new sftp();
+
+        this.client.on('error', (err) => {
+            logger.error('sftp 出错: ' + JSON.stringify(err));
+        });
     }
 
-    init(opt) {
+    public init(opt) {
         this.options = Object.assign({
             host: '',
             port: '22',
@@ -20,14 +24,14 @@ export default class Sftp extends Uploader {
             password: '',
             root: './'
         }, opt);
-        
+
         setLogInfo({
-            ...this.options,
-            user: this.options.username
+            ...opt,
+            user: opt.username
         });
     }
 
-    connect(): Promise<Record<string, any>> {
+    public connect(): Promise<Record<string, any>> {
 
         return this.client.connect({
             host: this.options.host,
@@ -38,11 +42,11 @@ export default class Sftp extends Uploader {
     }
 
     // 先写着接口，要不要再说
-    download() {
+    public download() {
 
     }
 
-    async delete(remoteFile) {
+    public async delete(remoteFile) {
         return this.client.delete(remoteFile);
     }
 
@@ -50,7 +54,7 @@ export default class Sftp extends Uploader {
      * 上传本地文件到服务器
      * @param curPath 上传文件的路径
      */
-    async upload(curPath, remoteDir?): Promise<{}> {
+    public async upload(curPath, remoteDir?): Promise<{}> {
         let remote = remoteDir ?? this.options.root;
 
         let files = parseFiles(curPath),
@@ -68,31 +72,31 @@ export default class Sftp extends Uploader {
         for (const file of fileList) {
 
             let p = path.join(process.cwd(), file);
-            let re = path.dirname(path.join(remote, file));
+            let re = path.join(remote, file);
             await this.put(p, re);
         }
 
         return Promise.all(uploadList);
     }
 
-    async put(currentFile, remoteDir?) {
+    public async put(currentFile: string, remoteFile: string) {
 
         if (!existFile(currentFile)) {
             logger.error(`不存在当前路径的文件：${currentFile}`);
             throw new Error(`不存在当前路径的文件：${currentFile}！`);
         }
 
-        let remote = path.join(remoteDir, path.basename(currentFile));
+        this.onFileUpload(currentFile);
 
-        return this.client.fastPut(currentFile, remote)
+        return this.client.fastPut(currentFile, remoteFile)
             .then(() => {
-                logger.info(`${currentFile} 文件上传成功`);
+                this.onSuccess(`${remoteFile} 文件上传成功`);
             }).catch(() => {
-                logger.error(`${currentFile} 文件上传失败！`);
+                this.onFailure(`${currentFile} 文件上传失败！`);
             });
     }
 
-    batchMkdir(remote: string[]) {
+    public batchMkdir(remote: string[]) {
         let list: Record<string, any>[] = [];
         remote.forEach(dir => {
             list.push(this.mkdir(dir));
@@ -104,7 +108,7 @@ export default class Sftp extends Uploader {
      * 创建服务器上的文件目录
      * @param {String} remote 目录
      */
-    async mkdir(remote: string) {
+    public async mkdir(remote: string) {
         let isExists = await this.client.exists(remote);
 
         // 如果服务器已经存在目录
@@ -124,25 +128,25 @@ export default class Sftp extends Uploader {
      * 查看文件夹文件
      * @param r 查看服务器上的指定的文件夹
      */
-    async list(r?: string) {
+    public async list(r?: string) {
         let root = r ?? this.options.root;
 
         return this.client.list(root);
     }
 
-    close() {
+    public close() {
         this.client?.end?.();
     }
 
     /**
      * 退出登录
      */
-    async logout() {
+    public async logout() {
         this.client?.end?.();
         this.onDestroyed();
     }
 
-    onDestroyed() {
+    public onDestroyed() {
         if (this.client) {
             this.client.destroy();
             this.client = null;
