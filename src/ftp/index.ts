@@ -73,7 +73,9 @@ export default class Ftp extends Uploader implements IUploader {
             });
 
             logger.info(`${file} 文件删除成功`);
-            resolve({});
+            resolve({
+                file
+            });
         })
     }
 
