@@ -13,31 +13,79 @@ configure({
 
             layout: {
                 type: 'pattern',
-                pattern: "[%d] [%p] [%c] [用户名:%X{user}] [服务器:%X{host}] - %l　%m%n"
+                pattern: "[%d] [%p] [%c] [用户名:%X{username}] [服务器:%X{host}] - %m"
             }
         },
 
         // 输入到日志
         operate: {
             type: 'file',
-            filename: 'operate.log',
+            filename: 'system.log',
             layout: {                         // 配置输出格式
                 type: "pattern",
-                pattern: "[%d] [%p] [%c] [用户名:%X{user}] [服务器:%X{host}] - %l　%m%n"
+                pattern: "[%d] [%p] [%c] [用户名:%X{username}] [服务器:%X{host}] - %l %o %m%n"
             }
         }
     },
     categories: {
         default: {
             appenders: ['out', 'operate'],
-            level: 'all'
+            level: 'info'
+        },
+
+        dev: {
+            appenders: ['operate'],
+            level: 'all' // 输出级别从低到高 all -> trace -> debug -> info ... -> off
         }
     }
 });
 
-const logger = getLogger('operate');
+class Logger {
+    private clientLogger;
+    private devLogger;
 
-function setLogInfo (opt) {
+    constructor() {
+        this.clientLogger = getLogger();
+        this.devLogger = getLogger('dev');
+    }
+
+    public trace(message: string, ...args: any[]) {
+        this.devLogger.trace(message, ...args);
+    }
+
+    public debug(message: string, ...args: any[]) {
+        this.devLogger.debug(message, ...args);
+    }
+
+    public info(message: string, ...args: any[]) {
+        this.clientLogger.info(message, ...args);
+    }
+
+    public warn(message: string, ...args: any[]) {
+        this.clientLogger.warn(message, ...args);
+    }
+
+    public error(message: string, ...args: any[]) {
+        this.clientLogger.error(message, ...args);
+    }
+
+    public fatal(message: string, ...args: any[]) {
+        this.clientLogger.fatal(message, ...args);
+    }
+
+    public mark(message: string, ...args: any[]) {
+        this.clientLogger.mark(message, ...args);
+    }
+
+    addContext(key, value) {
+        this.clientLogger.addContext(key, value);
+        this.devLogger.addContext(key, value);
+    }
+}
+
+let logger = new Logger();
+
+function setLogInfo(opt) {
     Object.keys(opt).forEach(item => {
         logger.addContext(item, opt[item]);
     });

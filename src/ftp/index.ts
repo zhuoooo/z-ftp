@@ -4,54 +4,96 @@
 
 import ftp from 'ftp';
 import path from 'path';
+import retry from 'retry';
 
 import Uploader, { IUploader } from '../class/uploader';
-import { logger, setLogInfo } from '../util/log';
+import { FtpConnectOptions } from '../type/common';
+import { logger } from '../util/log';
 import { getFiles, getDirectory, parseFiles, existFile } from '../util/util';
 
 export default class Ftp extends Uploader implements IUploader {
-    constructor(opt) {
+    constructor(opt: FtpConnectOptions) {
         super(opt);
 
         this.client = new ftp();
 
+        this.retryOperation = retry.operation({
+            retries: this.options.retries,
+            factor: this.options.factor,
+            minTimeout: this.options.minTimeout
+        });
+
         this.client.on('ready', () => {
-            this.onReady();
+            // this.onReady();
+            logger.info('ftp 连接成功');
+            this.emit('ftp:connected');
         });
         this.client.on('close', () => {
             logger.info('ftp 服务关闭');
+            this.emit('ftp:close');
         });
         this.client.on('end', () => {
             logger.info('ftp 服务结束');
+            this.emit('ftp:end');
         });
         this.client.on('error', (err) => {
-            logger.error('ftp 出错: ' + JSON.stringify(err));
+            this.emit('ftp:error', err);
+            // logger.error('ftp 出错: ' + JSON.stringify(err));
         });
     }
 
-    public init(opt) {
-        this.options = Object.assign({
-            host: '',
-            port: '21',
-            user: '',
-            password: '',
-            root: '.'
-        }, opt);
-        
-        setLogInfo(opt);
+    init(opt) {
+
+        // username用来打印日志，连接还是需要user字段
+        opt.user = opt.username;
+
+        super.init(opt);
+    }
+
+    private retryConnect() {
+
+        logger.info('正在连接服务器 ------>');
+        this.client.connect(this.options);
+
+        return new Promise((resolve, reject) => {
+            this.once('ftp:connected', () => {
+                resolve({
+                    code: 0
+                });
+            });
+
+            this.once('ftp:error', (err) => {
+
+                reject(err);
+            });
+        });
     }
 
     public connect(): Promise<Record<string, any>> {
+
+        this.retryOperation.attempt((curAttempt) => {
+
+            // 如果报错，就进行重新连接
+            this.retryConnect().then(() => {
+
+                return this.options;
+            }).catch((err) => {
+                if (this.retryOperation.retry(err)) {
+                    logger.warn(`连接出错，正在尝试再次连接。尝试第${curAttempt}次重新连接`);
+                    return;
+                }
+
+                logger.error(`无法与服务器建立连接！`);
+                logger.trace(`连接配置：${JSON.stringify(this.options)}`);
+            });
+        });
+
         return new Promise((resolve) => {
 
-            this.client.connect({
-                host: this.options.host,
-                port: this.options.port,
-                user: this.options.user,
-                password: this.options.password
+            this.on('ftp:connected', () => {
+                resolve(this.options);
             });
-            resolve(this.options);
-        })
+        });
     }
 
     // 先写着接口，要不要再说
@@ -60,10 +102,6 @@ export default class Ftp extends Uploader implements IUploader {
     }
 
     public async delete(file: string) {
-        if (!file) {
-            logger.error('必须输入删除的文件或文件路径');
-            throw new Error('必须输入删除的文件或文件路径');
-        }
 
         return new Promise((resolve, reject) => {
 
@@ -74,6 +112,7 @@ export default class Ftp extends Uploader implements IUploader {
 
             logger.info(`${file} 文件删除成功`);
             resolve({
+                code: 0,
                 file
             });
         })
@@ -119,6 +158,7 @@ export default class Ftp extends Uploader implements IUploader {
 
                 this.onSuccess(remoteFile);
                 resolve({
+                    code: 0,
                     file: currentFile
                 });
             })
@@ -136,8 +176,13 @@ export default class Ftp extends Uploader implements IUploader {
      * @param {String} remote 目录
      * @memberof Ftp
      */
-    public mkdir(remote: string) {
+    public mkdir(remote: string, cb?: Function) {
         this.client.mkdir(remote, (err) => {
+            cb?.(err);
+            if (err?.code === 550) {
+                logger.warn(`${remote} 目录已存在`);
+                return;
+            }
             if (err) {
                 logger.error(err);
                 return;
@@ -175,15 +220,17 @@ export default class Ftp extends Uploader implements IUploader {
      */
     public async logout() {
         this.client.end();
-        this.onDestroyed();
+        this.destroy();
+    }
+
+    public onBeforeDestroy() {
+        this.emit('ftp:beforedestroy');
     }
 
     public onDestroyed() {
         if (this.client) {
-            this.client.destroy();
             this.client = null;
         }
-        super.onDestroyed();
+        this.emit('ftp:destroy');
     }
-
 }
