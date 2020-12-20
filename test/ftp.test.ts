@@ -73,17 +73,39 @@ describe('ftp功能测试', () => {
         expect(ftp).toHaveBeenCalledTimes(1);
     });
 
-    it('测试连接', async () => {
+    it('测试连接成功', async () => {
         let client = new FtpClient(opt);
 
         client.connect();
-        jest.setTimeout(100);
         client.emit('ftp:connected');
 
         expect(initMock).toBeCalled();
     });
 
-    it('测试删除', async () => {
+    it('测试连接失败，默认重连1次', async () => {
+        let client = new FtpClient(opt);
+
+        client.connect();
+        jest.setTimeout(100);
+        client.emit('ftp:error', new Error('连接失败'));
+
+        expect(initMock).toBeCalledTimes(2);
+    });
+    
+    it('测试连接失败，重连2次', async () => {
+        let client = new FtpClient({
+            ...opt,
+            retries: 2
+        });
+
+        client.connect();
+        jest.setTimeout(100);
+        client.emit('ftp:error', new Error('连接失败'));
+
+        expect(initMock).toBeCalledTimes(3);
+    });
+
+    it('测试删除成功', async () => {
         let client = new FtpClient(opt);
         let result = await client.delete(file);
 
@@ -100,7 +122,7 @@ describe('ftp功能测试', () => {
         })
     });
 
-    it('测试上传', async () => {
+    it('测试上传成功', async () => {
         let client = new FtpClient(opt);
         let result = await client.put(file, file);
 
@@ -126,7 +148,7 @@ describe('ftp功能测试', () => {
 
     it('测试上传文件夹', async () => {
         let client = new FtpClient(opt);
-        let result = await client.upload('../src');
+        let result = await client.upload('./src');
 
         expect(result).toBeInstanceOf(Array);
     })
