@@ -1,13 +1,14 @@
 import sftp from 'ssh2-sftp-client';
 import path from 'path';
 
-import { logger, setLogInfo } from '../util/log';
+import { logger } from '../util/log';
 import { getFiles, getDirectory, parseFiles, existFile } from '../util/util';
 
-import Uploader, { IUploader } from '../class/uploader'
+import Uploader, { IUploader } from '../class/uploader';
+import { SftpConnedtOptions } from '../type/common';
 
 export default class Sftp extends Uploader implements IUploader {
-    constructor(opt) {
+    constructor(opt: SftpConnedtOptions) {
         super(opt);
         this.client = new sftp();
 
@@ -17,28 +18,17 @@ export default class Sftp extends Uploader implements IUploader {
     }
 
     public init(opt) {
-        this.options = Object.assign({
-            host: '',
-            port: '22',
-            username: '',
-            password: '',
-            root: './'
-        }, opt);
 
-        setLogInfo({
-            ...opt,
-            user: opt.username
-        });
+        // sftp 本身支持重连机制，但是命名有点魔幻，所以这里处理一下
+        opt.retry_factor = opt.factor ?? 2;
+        opt.retry_minTimeout = opt.minTimeout ?? 1000;
+
+        super.init(opt);
     }
 
     public connect(): Promise<Record<string, any>> {
 
-        return this.client.connect({
-            host: this.options.host,
-            port: this.options.port,
-            username: this.options.username,
-            password: this.options.password
-        });
+        return this.client.connect(this.options);
     }
 
     // 先写着接口，要不要再说

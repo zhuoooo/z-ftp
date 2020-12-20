@@ -13,11 +13,12 @@ module.exports = {
     "js",
     "jsx"
   ],
-  moduleNameWrapper: {
-    '^@APP/(.*)$': '<rootDir>/src/$1'
+  moduleNameMapper: {
+
   },
   collectCoverageFrom: [
-    "!**/node_modules/**",
-    "!**/vendor/**"
+    'src/**/*.{js,ts,tsx}',
+    '!**/*.d.ts',
+    '!src/index.ts'
   ]
 }

@@ -3,7 +3,7 @@
  */
 
 let EventEmitter = require('events');
-import { logger } from '../util/log';
+import { logger, setLogInfo } from '../util/log';
 
 export interface IUploader {
     connect();
@@ -16,12 +16,25 @@ export interface IUploader {
 
 export default class Uploader extends EventEmitter {
 
-    constructor(opt = {}) {
+    constructor(opt) {
         super();
         this.init(opt);
     }
 
     public init(opt) {
+
+        this.options = Object.assign({
+            port: 22,
+            host: '',
+            username: '',
+            password: '',
+            retries: 1,
+            factor: 2,
+            minTimeout: 1000,
+            root: './'
+        }, opt);
+
+        setLogInfo(opt);
         this.options = opt;
     }
 
@@ -63,7 +76,7 @@ export default class Uploader extends EventEmitter {
     }
 
     public destroy() {
-        if (this.destroyed) {
+        if (!this.destroyed) {
             this.onBeforeDestroy();
             this.options = null;
             this.removeAllListeners();
