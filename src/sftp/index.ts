@@ -125,22 +125,25 @@ export default class Sftp extends Uploader implements IUploader {
     }
 
     public close() {
-        this.client?.end?.();
+        this.client.end();
     }
 
     /**
      * 退出登录
      */
     public async logout() {
-        this.client?.end?.();
-        this.onDestroyed();
+        this.client.end();
+        this.destroy();
+    }
+    
+    public onBeforeDestroy() {
+        this.emit('sftp:beforedestroy');
     }
 
     public onDestroyed() {
         if (this.client) {
-            this.client.destroy();
             this.client = null;
         }
-        super.onDestroyed();
+        this.emit('sftp:destroy');
     }
 }
