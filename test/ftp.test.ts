@@ -4,6 +4,10 @@
 
 import ftp from 'ftp';
 import FtpClient from '../src/ftp/index';
+import {
+    ERROR_CODE,
+    SUCCESS_CODE
+} from '../src/const/code';
 
 let opt = {
     host: 'localhost',
@@ -22,13 +26,13 @@ jest.mock('ftp', () => {
             connect: initMock,
             delete: jest.fn((file, cb) => {
                 if (!file) {
-                    cb?.({ code: 1 })
+                    cb?.({ code: ERROR_CODE })
                 }
             }),
             put: jest.fn((file, remoteFile, cb) => {
                 if (!remoteFile) {
 
-                    cb?.({ code: 1 });
+                    cb?.({ code: ERROR_CODE });
                 }
                 cb?.();
             }),
@@ -37,13 +41,13 @@ jest.mock('ftp', () => {
                     return cb({ code: 550 });
                 }
                 if (dir === 'otherError') {
-                    return cb({ code: 1 });
+                    return cb({ code: ERROR_CODE });
                 }
                 cb?.();
             }),
             list: jest.fn((dir, cb) => {
                 let list = [],
-                    err = { code: 1 };
+                    err = { code: ERROR_CODE };
 
                 if (!dir) {
                     cb(err, list);
@@ -91,7 +95,7 @@ describe('ftp功能测试', () => {
 
         expect(initMock).toBeCalledTimes(2);
     });
-    
+
     it('测试连接失败，重连2次', async () => {
         let client = new FtpClient({
             ...opt,
@@ -110,7 +114,7 @@ describe('ftp功能测试', () => {
         let result = await client.delete(file);
 
         expect(result).toEqual({
-            code: 0,
+            code: SUCCESS_CODE,
             file: file
         });
     });
@@ -118,7 +122,7 @@ describe('ftp功能测试', () => {
     it('测试删除失败', async () => {
         let client = new FtpClient(opt);
         client.delete('').catch(err => {
-            expect(err.code).toEqual(1);
+            expect(err.code).toEqual(ERROR_CODE);
         })
     });
 
@@ -127,7 +131,7 @@ describe('ftp功能测试', () => {
         let result = await client.put(file, file);
 
         expect(result).toEqual({
-            code: 0,
+            code: SUCCESS_CODE,
             file: file
         });
     });
@@ -142,7 +146,7 @@ describe('ftp功能测试', () => {
         });
 
         await client.put(file, '').catch(err => {
-            expect(err.code).toEqual(1);
+            expect(err.code).toEqual(ERROR_CODE);
         });
     });
 
@@ -151,7 +155,7 @@ describe('ftp功能测试', () => {
         let result = await client.upload('./src');
 
         expect(result).toBeInstanceOf(Array);
-    })
+    });
 
     it('测试创建文件夹成功', async () => {
 
@@ -191,7 +195,7 @@ describe('ftp功能测试', () => {
 
         await client.list('').catch(err => {
 
-            expect(err.code).toEqual(1);
+            expect(err.code).toEqual(ERROR_CODE);
         });
 
     });
