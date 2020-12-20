@@ -2,7 +2,7 @@
  * @file ftp 二次封装功能
  */
 
-import ftp from 'ftp';
+import FtpNode from 'ftp';
 import path from 'path';
 import retry from 'retry';
 
@@ -15,7 +15,7 @@ export default class Ftp extends Uploader implements IUploader {
     constructor(opt: FtpConnectOptions) {
         super(opt);
 
-        this.client = new ftp();
+        this.client = new FtpNode();
 
         this.retryOperation = retry.operation({
             retries: this.options.retries,

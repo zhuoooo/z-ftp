@@ -1,4 +1,4 @@
-import sftp from 'ssh2-sftp-client';
+import SftpClient from 'ssh2-sftp-client';
 import path from 'path';
 
 import { logger } from '../util/log';
@@ -10,7 +10,7 @@ import { SftpConnedtOptions } from '../type/common';
 export default class Sftp extends Uploader implements IUploader {
     constructor(opt: SftpConnedtOptions) {
         super(opt);
-        this.client = new sftp();
+        this.client = new SftpClient();
 
         this.client.on('error', (err) => {
             logger.error('sftp 出错: ' + JSON.stringify(err));
