@@ -1,11 +1,11 @@
 import SftpClient from 'ssh2-sftp-client';
-import path from 'path';
 
 import { logger } from '../util/log';
-import { getFiles, getDirectory, parseFiles, existFile } from '../util/util';
+import { existFile } from '../util/util';
 
 import Uploader, { IUploader } from '../class/uploader';
-import { SftpConnedtOptions } from '../type/common';
+import { SftpConnedtOptions, OprStatus } from '../type/common';
+import { ERROR_CODE, SUCCESS_CODE } from '../const/code';
 
 export default class Sftp extends Uploader implements IUploader {
     constructor(opt: SftpConnedtOptions) {
@@ -40,58 +40,30 @@ export default class Sftp extends Uploader implements IUploader {
         return this.client.delete(remoteFile);
     }
 
-    /**
-     * 上传本地文件到服务器
-     * @param curPath 上传文件的路径
-     */
-    public async upload(curPath, remoteDir?): Promise<{}> {
-        let remote = remoteDir ?? this.options.root;
+    public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
 
-        let files = parseFiles(curPath),
-            dirList: string[] = getDirectory(files, remote),
-            fileList: string[] = getFiles(files),
-            uploadList: {}[] = [];
-
-        await this.batchMkdir(dirList);
-
-        // fileList.forEach(async (file) => {
-        //     let p = path.join(process.cwd(), file);
-        //     let re = path.dirname(path.join(remote, file));
-        //     uploadList.push(await this.put(p, re));
-        // });
-        for (const file of fileList) {
-
-            let p = path.join(process.cwd(), file);
-            let re = path.join(remote, file);
-            await this.put(p, re);
-        }
-
-        return Promise.all(uploadList);
-    }
-
-    public async put(currentFile: string, remoteFile: string) {
-
-        if (!existFile(currentFile)) {
-            logger.error(`不存在当前路径的文件：${currentFile}`);
-            throw new Error(`不存在当前路径的文件：${currentFile}！`);
-        }
+        // if (!existFile(currentFile)) {
+        //     logger.error(`不存在当前路径的文件：${currentFile}`);
+        //     throw new Error(`不存在当前路径的文件：${currentFile}！`);
+        // }
 
         this.onFileUpload(currentFile);
 
         return this.client.fastPut(currentFile, remoteFile)
             .then(() => {
                 this.onSuccess(`${remoteFile} 文件上传成功`);
-            }).catch(() => {
+                return {
+                    code: SUCCESS_CODE,
+                    file: currentFile
+                };
+            }).catch((err) => {
                 this.onFailure(`${currentFile} 文件上传失败！`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${currentFile} 文件上传失败！`
+                };
             });
-    }
-
-    public batchMkdir(remote: string[]) {
-        let list: Record<string, any>[] = [];
-        remote.forEach(dir => {
-            list.push(this.mkdir(dir));
-        });
-        return Promise.all(list);
     }
 
     /**
@@ -109,8 +81,17 @@ export default class Sftp extends Uploader implements IUploader {
         return this.client.mkdir(remote)
             .then(() => {
                 logger.info(`${remote} 目录创建成功`);
-            }).catch(() => {
+                return {
+                    code: SUCCESS_CODE,
+                    remote
+                };
+            }).catch((err) => {
                 logger.error(`${remote} 目录创建失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${remote} 目录创建失败`
+                }
             });
     }
 
@@ -135,7 +116,7 @@ export default class Sftp extends Uploader implements IUploader {
         this.client.end();
         this.destroy();
     }
-    
+
     public onBeforeDestroy() {
         this.emit('sftp:beforedestroy');
     }
