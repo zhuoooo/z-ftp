@@ -9,7 +9,6 @@ import retry from 'retry';
 import Uploader, { IUploader } from '../class/uploader';
 import { FtpConnectOptions, OprStatus } from '../type/common';
 import { logger } from '../util/log';
-import { existFile } from '../util/util';
 
 export default class Ftp extends Uploader implements IUploader {
     constructor(opt: FtpConnectOptions) {

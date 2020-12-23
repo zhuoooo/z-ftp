@@ -1,7 +1,6 @@
 import SftpClient from 'ssh2-sftp-client';
 
 import { logger } from '../util/log';
-import { existFile } from '../util/util';
 
 import Uploader, { IUploader } from '../class/uploader';
 import { SftpConnedtOptions, OprStatus } from '../type/common';

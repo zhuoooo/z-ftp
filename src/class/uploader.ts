@@ -57,7 +57,7 @@ export default class Uploader extends EventEmitter {
         let files = parseFiles(curPath),
             dirList: string[] = getDirectory(files, remote),
             fileList: string[] = getFiles(files),
-            uploadList: any[] = [];
+            uploadList: Record<string, any>[] = [];
 
         await this.batchMkdir(dirList);
 

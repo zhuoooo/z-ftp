@@ -2,7 +2,7 @@
  * @file 全局的声明
  */
 
- // 上传模式
+// 上传模式
 export type UploadMode = 'parallel' | 'serial';
 
 // 操作后的结果
