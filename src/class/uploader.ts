@@ -5,6 +5,7 @@
 let EventEmitter = require('events');
 import path from 'path';
 import merge from 'lodash/merge';
+import PromiseLimit from 'p-limit';
 
 import { UPLOAD_MODE } from '../const/common';
 import { logger, setLogInfo } from '../util/log';
@@ -13,9 +14,9 @@ import { UploadMode, OprStatus } from '../type/common';
 
 export interface IUploader {
     connect();
-    put(filePath?: string, remoteDir?: string): Promise<OprStatus>;
-    delete(remoteFile?: string);
-    list();
+    put(filePath: string, remoteDir?: string): Promise<OprStatus>;
+    delete(remoteFile?: string): Promise<OprStatus>;
+    list(): Promise<OprStatus>;
     close();
     mkdir(remote: string): Promise<OprStatus>;
 }
@@ -36,6 +37,9 @@ export default class Uploader extends EventEmitter {
             password: '',
             retries: 1,
             factor: 2,
+            size: '',
+            ext: [],
+            concurrency: 3, // 并发数，只有在并行上传的情况下有效
             mode: UPLOAD_MODE.parallel, // parallel 并行上传， serial 串行上传
             minTimeout: 1000,
             root: './'
@@ -50,11 +54,15 @@ export default class Uploader extends EventEmitter {
      * @param [remoteDir]   上传到目标路径
      * @param [mode]        指定上传模式
      */
-    public async upload(curPath: string, remoteDir?: string, mode?: UploadMode): Promise<Record<string, any>> {
+    public async upload(curPath: string|string[], remoteDir?: string, mode?: UploadMode): Promise<Record<string, any>> {
         let remote = remoteDir ?? this.options.root,
-            uploadMode = mode ?? this.options.mode;
+            uploadMode = mode ?? this.options.mode,
+            extName = this.options.ext;
 
-        let files = parseFiles(curPath),
+        // 并发控制
+        const concurrentLimit = PromiseLimit(this.options.concurrency);
+        
+        let files = parseFiles(curPath, extName),
             dirList: string[] = getDirectory(files, remote),
             fileList: string[] = getFiles(files),
             uploadList: Record<string, any>[] = [];
@@ -71,11 +79,15 @@ export default class Uploader extends EventEmitter {
                 uploadList.push(await this.put(p, re));
             } else {
 
-                uploadList.push(this.put(p, re));
+                uploadList.push(concurrentLimit(() => this.put(p, re)));
             }
         }
 
         return Promise.all(uploadList);
+    }
+    
+    public put(filePath: string, remoteDir?: string): Promise<OprStatus> {
+        throw new Error('必须重写 put 方法');
     }
 
     public batchMkdir(remote: string[]): Promise<Record<string, any>> {
@@ -84,6 +96,10 @@ export default class Uploader extends EventEmitter {
             list.push(this.mkdir(dir));
         });
         return Promise.all(list);
+    }
+
+    public mkdir(remote: string): Record<string, any> {
+        throw new Error('必须重写 mkdir 方法');
     }
 
     public onReady() {

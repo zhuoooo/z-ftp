@@ -68,7 +68,7 @@ export default class Ftp extends Uploader implements IUploader {
         });
     }
 
-    public connect(): Promise<Record<string, any>> {
+    public connect(): Promise<OprStatus> {
 
         this.retryOperation.attempt((curAttempt) => {
 
@@ -98,34 +98,30 @@ export default class Ftp extends Uploader implements IUploader {
         });
     }
 
-    // 先写着接口，要不要再说
-    public download() {
-
-    }
-
-    public async delete(file: string) {
+    public async delete(file: string): Promise<OprStatus> {
 
         return new Promise((resolve, reject) => {
 
             this.client.delete(file, err => {
-                logger.error(err);
-                reject(err);
-            });
+                if (err) {
+                    logger.error(err);
+                    reject({
+                        code: ERROR_CODE,
+                        error: err
+                    });
+                }
 
-            logger.info(`${file} 文件删除成功`);
-            resolve({
-                code: SUCCESS_CODE,
-                file
+                logger.info(`${file} 文件删除成功`);
+                resolve({
+                    code: SUCCESS_CODE,
+                    data: file
+                });
             });
         })
     }
 
+    // overwrite
     public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
-
-        // if (!existFile(currentFile)) {
-        //     logger.error(`不存在当前路径的文件：${currentFile}`);
-        //     throw new Error(`不存在当前路径的文件：${currentFile}！`);
-        // }
 
         return new Promise((resolve, reject) => {
             this.onFileUpload(currentFile);
@@ -142,7 +138,7 @@ export default class Ftp extends Uploader implements IUploader {
                 this.onSuccess(remoteFile);
                 resolve({
                     code: SUCCESS_CODE,
-                    file: currentFile
+                    data: currentFile
                 });
             })
         })
@@ -174,7 +170,7 @@ export default class Ftp extends Uploader implements IUploader {
                 logger.info(`${remote} 目录创建成功`);
                 resolve({
                     code: SUCCESS_CODE,
-                    remote
+                    data: remote
                 });
             });
         });
@@ -184,18 +180,24 @@ export default class Ftp extends Uploader implements IUploader {
      * 查看文件夹文件
      * @param r 查看服务器上的指定的文件夹
      */
-    public async list(r?: string) {
+    public async list(r?: string): Promise<OprStatus> {
         let root = r ?? this.options.root;
 
         return new Promise((resolve, reject) => {
             this.client.list(root, (err, list) => {
                 if (err) {
                     logger.error(err);
-                    reject(err);
+                    reject({
+                        code: ERROR_CODE,
+                        error: err
+                    });
                 }
 
                 logger.info(`查看 ${root} 目录`);
-                resolve(list);
+                resolve({
+                    code: SUCCESS_CODE,
+                    data: list
+                });
             });
         });
     }

@@ -26,8 +26,9 @@ jest.mock('ftp', () => {
             connect: initMock,
             delete: jest.fn((file, cb) => {
                 if (!file) {
-                    cb?.({ code: ERROR_CODE })
+                    return cb?.({ code: ERROR_CODE });
                 }
+                cb?.();
             }),
             put: jest.fn((file, remoteFile, cb) => {
                 if (!remoteFile) {
@@ -105,6 +106,7 @@ describe('ftp功能测试', () => {
         client.connect();
         jest.setTimeout(100);
         client.emit('ftp:error', new Error('连接失败'));
+        client.emit('ftp:error', new Error('连接失败'));
 
         expect(initMock).toBeCalledTimes(3);
     });
@@ -113,10 +115,7 @@ describe('ftp功能测试', () => {
         let client = new FtpClient(opt);
         let result = await client.delete(file);
 
-        expect(result).toEqual({
-            code: SUCCESS_CODE,
-            file: file
-        });
+        expect(result.code).toEqual(SUCCESS_CODE);
     });
 
     it('测试删除失败', async () => {
@@ -130,10 +129,7 @@ describe('ftp功能测试', () => {
         let client = new FtpClient(opt);
         let result = await client.put(file, file);
 
-        expect(result).toEqual({
-            code: SUCCESS_CODE,
-            file: file
-        });
+        expect(result.code).toEqual(SUCCESS_CODE);
     });
 
 
@@ -186,7 +182,7 @@ describe('ftp功能测试', () => {
         let client = new FtpClient(opt);
         let result = await client.list('root');
 
-        expect(result).toBeInstanceOf(Array);
+        expect(result.code).toEqual(SUCCESS_CODE);
     });
 
     it('测试查看不存在目录', async () => {

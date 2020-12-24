@@ -22,6 +22,8 @@ export interface ServerInitOptions {
     factor?: number;
     minTimeout?: number;
     mode?: UploadMode;
+    concurrency?: number;
+    ext?: string[]
 }
 
 // ftp 连接配置

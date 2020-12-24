@@ -25,26 +25,49 @@ export default class Sftp extends Uploader implements IUploader {
         super.init(opt);
     }
 
-    public connect(): Promise<Record<string, any>> {
+    public connect(): Promise<OprStatus> {
 
-        return this.client.connect(this.options);
+        return this.client.connect(this.options)
+            .then(() => {
+
+                logger.info('连接成功');
+                return {
+                    code: SUCCESS_CODE,
+                    data: this.options
+                };
+            }).catch((err) => {
+
+                logger.error('连接失败');
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: '连接失败'
+                }
+            });
     }
 
-    // 先写着接口，要不要再说
-    public download() {
+    public async delete(remoteFile): Promise<OprStatus> {
+        return this.client.delete(remoteFile)
+            .then(() => {
 
+                logger.info(`${remoteFile} 目录删除成功`);
+                return {
+                    code: SUCCESS_CODE,
+                    data: remoteFile
+                };
+            }).catch((err) => {
+
+                logger.error(`${remoteFile} 目录删除失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${remoteFile} 目录删除失败`
+                }
+            });
     }
 
-    public async delete(remoteFile) {
-        return this.client.delete(remoteFile);
-    }
-
+    // overwrite
     public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
-
-        // if (!existFile(currentFile)) {
-        //     logger.error(`不存在当前路径的文件：${currentFile}`);
-        //     throw new Error(`不存在当前路径的文件：${currentFile}！`);
-        // }
 
         this.onFileUpload(currentFile);
 
@@ -69,20 +92,23 @@ export default class Sftp extends Uploader implements IUploader {
      * 创建服务器上的文件目录
      * @param {String} remote 目录
      */
-    public async mkdir(remote: string) {
+    public async mkdir(remote: string): Promise<OprStatus> {
         let isExists = await this.client.exists(remote);
 
         // 如果服务器已经存在目录
         if (isExists) {
             logger.info(`${remote} 目录已存在`);
-            return;
+            return Promise.resolve({
+                code: SUCCESS_CODE,
+                data: remote
+            });
         }
         return this.client.mkdir(remote)
             .then(() => {
                 logger.info(`${remote} 目录创建成功`);
                 return {
                     code: SUCCESS_CODE,
-                    remote
+                    data: remote
                 };
             }).catch((err) => {
                 logger.error(`${remote} 目录创建失败`);
@@ -98,10 +124,26 @@ export default class Sftp extends Uploader implements IUploader {
      * 查看文件夹文件
      * @param r 查看服务器上的指定的文件夹
      */
-    public async list(r?: string) {
+    public async list(r?: string): Promise<OprStatus> {
         let root = r ?? this.options.root;
 
-        return this.client.list(root);
+        return this.client.list(root)
+            .then(() => {
+
+                logger.info(`${root} 目录删除成功`);
+                return {
+                    code: SUCCESS_CODE,
+                    data: root
+                };
+            }).catch((err) => {
+
+                logger.error(`${root} 目录删除失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${root} 目录删除失败`
+                }
+            });;
     }
 
     public close() {

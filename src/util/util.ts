@@ -59,22 +59,30 @@ function existFile(file): boolean {
     return isExitCurFile;
 }
 
-function globFile(pattern) {
+function globFile(pattern, ext: string[] = [], globOption = {}) {
     let p = path.join(process.cwd(), pattern);
 
     if (fs.existsSync(p)) {
         if (fs.statSync(p).isDirectory()) {
-            pattern += '/**';
+            pattern += `/**/*.${ext.length ? `(${ext.join('|')})` : '*'}`;
         } else {
             return [pattern];
         }
     }
-    return glob.sync(pattern, {});
+    return glob.sync(pattern, globOption);
 }
 
-function parseFiles(files: string = '') {
+function parseFiles(files: string | string[] = '', ext: string[] = []) {
+    let allFiles: string[] = [];
+    if (!Array.isArray(files)) {
+        files = [files];
+    }
 
-    return globFile(files);
+    files.forEach(item => {
+        allFiles.push(...globFile(item, ext));
+    });
+
+    return allFiles;
 }
 
 export {
