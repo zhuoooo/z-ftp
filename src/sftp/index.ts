@@ -1,11 +1,10 @@
 import SftpClient from 'ssh2-sftp-client';
-import path from 'path';
 
 import { logger } from '../util/log';
-import { getFiles, getDirectory, parseFiles, existFile } from '../util/util';
 
 import Uploader, { IUploader } from '../class/uploader';
-import { SftpConnedtOptions } from '../type/common';
+import { SftpConnedtOptions, OprStatus } from '../type/common';
+import { ERROR_CODE, SUCCESS_CODE } from '../const/code';
 
 export default class Sftp extends Uploader implements IUploader {
     constructor(opt: SftpConnedtOptions) {
@@ -26,91 +25,98 @@ export default class Sftp extends Uploader implements IUploader {
         super.init(opt);
     }
 
-    public connect(): Promise<Record<string, any>> {
+    public connect(): Promise<OprStatus> {
 
-        return this.client.connect(this.options);
+        return this.client.connect(this.options)
+            .then(() => {
+
+                logger.info('连接成功');
+                return {
+                    code: SUCCESS_CODE,
+                    data: this.options
+                };
+            }).catch((err) => {
+
+                logger.error('连接失败');
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: '连接失败'
+                }
+            });
     }
 
-    // 先写着接口，要不要再说
-    public download() {
+    public async delete(remoteFile): Promise<OprStatus> {
+        return this.client.delete(remoteFile)
+            .then(() => {
 
+                logger.info(`${remoteFile} 目录删除成功`);
+                return {
+                    code: SUCCESS_CODE,
+                    data: remoteFile
+                };
+            }).catch((err) => {
+
+                logger.error(`${remoteFile} 目录删除失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${remoteFile} 目录删除失败`
+                }
+            });
     }
 
-    public async delete(remoteFile) {
-        return this.client.delete(remoteFile);
-    }
-
-    /**
-     * 上传本地文件到服务器
-     * @param curPath 上传文件的路径
-     */
-    public async upload(curPath, remoteDir?): Promise<{}> {
-        let remote = remoteDir ?? this.options.root;
-
-        let files = parseFiles(curPath),
-            dirList: string[] = getDirectory(files, remote),
-            fileList: string[] = getFiles(files),
-            uploadList: {}[] = [];
-
-        await this.batchMkdir(dirList);
-
-        // fileList.forEach(async (file) => {
-        //     let p = path.join(process.cwd(), file);
-        //     let re = path.dirname(path.join(remote, file));
-        //     uploadList.push(await this.put(p, re));
-        // });
-        for (const file of fileList) {
-
-            let p = path.join(process.cwd(), file);
-            let re = path.join(remote, file);
-            await this.put(p, re);
-        }
-
-        return Promise.all(uploadList);
-    }
-
-    public async put(currentFile: string, remoteFile: string) {
-
-        if (!existFile(currentFile)) {
-            logger.error(`不存在当前路径的文件：${currentFile}`);
-            throw new Error(`不存在当前路径的文件：${currentFile}！`);
-        }
+    // overwrite
+    public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
 
         this.onFileUpload(currentFile);
 
         return this.client.fastPut(currentFile, remoteFile)
             .then(() => {
                 this.onSuccess(`${remoteFile} 文件上传成功`);
-            }).catch(() => {
+                return {
+                    code: SUCCESS_CODE,
+                    file: currentFile
+                };
+            }).catch((err) => {
                 this.onFailure(`${currentFile} 文件上传失败！`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${currentFile} 文件上传失败！`
+                };
             });
-    }
-
-    public batchMkdir(remote: string[]) {
-        let list: Record<string, any>[] = [];
-        remote.forEach(dir => {
-            list.push(this.mkdir(dir));
-        });
-        return Promise.all(list);
     }
 
     /**
      * 创建服务器上的文件目录
      * @param {String} remote 目录
      */
-    public async mkdir(remote: string) {
+    public async mkdir(remote: string): Promise<OprStatus> {
         let isExists = await this.client.exists(remote);
 
         // 如果服务器已经存在目录
         if (isExists) {
             logger.info(`${remote} 目录已存在`);
-            return;
+            return Promise.resolve({
+                code: SUCCESS_CODE,
+                data: remote
+            });
         }
         return this.client.mkdir(remote)
             .then(() => {
                 logger.info(`${remote} 目录创建成功`);
-            }).catch(() => {
+                return {
+                    code: SUCCESS_CODE,
+                    data: remote
+                };
+            }).catch((err) => {
                 logger.error(`${remote} 目录创建失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${remote} 目录创建失败`
+                }
             });
     }
 
@@ -118,10 +124,26 @@ export default class Sftp extends Uploader implements IUploader {
      * 查看文件夹文件
      * @param r 查看服务器上的指定的文件夹
      */
-    public async list(r?: string) {
+    public async list(r?: string): Promise<OprStatus> {
         let root = r ?? this.options.root;
 
-        return this.client.list(root);
+        return this.client.list(root)
+            .then(() => {
+
+                logger.info(`${root} 目录删除成功`);
+                return {
+                    code: SUCCESS_CODE,
+                    data: root
+                };
+            }).catch((err) => {
+
+                logger.error(`${root} 目录删除失败`);
+                return {
+                    code: ERROR_CODE,
+                    error: err,
+                    msg: `${root} 目录删除失败`
+                }
+            });;
     }
 
     public close() {
@@ -135,7 +157,7 @@ export default class Sftp extends Uploader implements IUploader {
         this.client.end();
         this.destroy();
     }
-    
+
     public onBeforeDestroy() {
         this.emit('sftp:beforedestroy');
     }

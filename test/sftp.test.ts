@@ -17,8 +17,13 @@ let opt = {
     root: './user'
 };
 let file = './src/index.ts';
-let dir = '../test/';
+
 let initMock = jest.fn((opt) => {
+    if (opt === 'error') {
+        return Promise.reject({
+            code: ERROR_CODE
+        });
+    }
     if (opt) {
 
         return Promise.resolve({
@@ -26,7 +31,9 @@ let initMock = jest.fn((opt) => {
             code: SUCCESS_CODE
         });
     }
-    return Promise.reject({ code: ERROR_CODE });
+    return Promise.reject({
+        code: ERROR_CODE
+    });
 });
 
 jest.mock('ssh2-sftp-client', () => {
@@ -35,11 +42,23 @@ jest.mock('ssh2-sftp-client', () => {
             connect: initMock,
             delete: initMock,
             fastPut: jest.fn((file, remoteFile) => {
+                if (file) {
+                    return Promise.resolve({
+                        code: SUCCESS_CODE,
+                        file
+                    });
+                }
 
-                return Promise.resolve(file);
+                return Promise.reject(file);
             }),
             exists: jest.fn((dir) => {
-                return Promise.resolve(!dir);
+                if (dir === 'no') {
+                    return false;
+                }
+                if (dir === 'yes') {
+                    return true;
+                }
+                return false;
             }),
             mkdir: initMock,
             end: initMock,
@@ -73,6 +92,19 @@ describe('sftp功能测试', () => {
         });
     });
 
+    it('测试连接成功', async () => {
+        let client = new SftpClient({
+            ...opt,
+            username: 'error',
+            factor: 2,
+            minTimeout: 1000
+        });
+
+        await client.connect().catch((res) => {
+            expect(res.code).toEqual(ERROR_CODE);
+        });
+    });
+
     it('测试上传文件夹', async () => {
         let client = new SftpClient(opt);
         let result = await client.upload('./src');
@@ -86,9 +118,9 @@ describe('sftp功能测试', () => {
     it('测试上传不存在的文件', async () => {
         let client = new SftpClient(opt);
 
-        client.put('./src/test.ts', '').catch(err => {
+        client.put('', '').catch(res => {
 
-            expect(err).toBeInstanceOf(Error);
+            expect(res.code).toBeInstanceOf(ERROR_CODE);
         });
     });
 
@@ -104,12 +136,27 @@ describe('sftp功能测试', () => {
         });
     });
 
+    it('测试创建不存在的文件夹', async () => {
+        let client = new SftpClient(opt);
+
+        client.mkdir('no').then(res => {
+            expect(res.code).toEqual(SUCCESS_CODE);
+        });
+    });
+
+    it('测试创建已存在的文件夹', async () => {
+        let client = new SftpClient(opt);
+
+        client.mkdir('yes').then(res => {
+            expect(res.code).toEqual(SUCCESS_CODE);
+        });
+    });
 
     it('测试创建文件夹失败', async () => {
         let client = new SftpClient(opt);
 
-        client.mkdir('').catch(err => {
-            expect(err.code).toEqual(ERROR_CODE);
+        client.mkdir('error').catch(res => {
+            expect(res.code).toEqual(ERROR_CODE);
         });
     });
 

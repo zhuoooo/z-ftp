@@ -2,6 +2,15 @@
  * @file 全局的声明
  */
 
+// 上传模式
+export type UploadMode = 'parallel' | 'serial';
+
+// 操作后的结果
+export interface OprStatus {
+    code: number;
+    msg?: string;
+    [propName: string]: any;
+}
 
 // 连接配置
 export interface ServerInitOptions {
@@ -12,6 +21,9 @@ export interface ServerInitOptions {
     retries?: number;
     factor?: number;
     minTimeout?: number;
+    mode?: UploadMode;
+    concurrency?: number;
+    ext?: string[]
 }
 
 // ftp 连接配置
