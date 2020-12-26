@@ -7,12 +7,15 @@ import { SftpConnedtOptions, OprStatus } from '../type/common';
 import { ERROR_CODE, SUCCESS_CODE } from '../const/code';
 
 export default class Sftp extends Uploader implements IUploader {
+    private client: SftpClient;
+
     constructor(opt: SftpConnedtOptions) {
         super(opt);
         this.client = new SftpClient();
 
         this.client.on('error', (err) => {
             logger.error('sftp 出错: ' + JSON.stringify(err));
+            this.emit('sftp:error', err);
         });
     }
 
@@ -31,6 +34,7 @@ export default class Sftp extends Uploader implements IUploader {
             .then(() => {
 
                 logger.info('连接成功');
+                this.emit('sftp:connected');
                 return {
                     code: SUCCESS_CODE,
                     data: this.options
@@ -51,6 +55,7 @@ export default class Sftp extends Uploader implements IUploader {
             .then(() => {
 
                 logger.info(`${remoteFile} 目录删除成功`);
+                this.emit('sftp:delete', remoteFile);
                 return {
                     code: SUCCESS_CODE,
                     data: remoteFile
@@ -69,17 +74,20 @@ export default class Sftp extends Uploader implements IUploader {
     // overwrite
     public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
 
-        this.onFileUpload(currentFile);
+        this.emit('sftp:uploading', currentFile);
+        logger.info(`正在上传：${currentFile}`);
 
         return this.client.fastPut(currentFile, remoteFile)
             .then(() => {
-                this.onSuccess(`${remoteFile} 文件上传成功`);
+                logger.info(`上传成功：${currentFile}`);
+                this.emit('sftp:uploadSuccess', currentFile);
                 return {
                     code: SUCCESS_CODE,
                     file: currentFile
                 };
             }).catch((err) => {
-                this.onFailure(`${currentFile} 文件上传失败！`);
+                logger.error(`上传失败：${currentFile}`);
+                this.emit('sftp:uploadFailure', this.options, err);
                 return {
                     code: ERROR_CODE,
                     error: err,
@@ -106,6 +114,7 @@ export default class Sftp extends Uploader implements IUploader {
         return this.client.mkdir(remote)
             .then(() => {
                 logger.info(`${remote} 目录创建成功`);
+                this.emit('sftp:mkdirSuccess');
                 return {
                     code: SUCCESS_CODE,
                     data: remote
@@ -130,24 +139,27 @@ export default class Sftp extends Uploader implements IUploader {
         return this.client.list(root)
             .then(() => {
 
-                logger.info(`${root} 目录删除成功`);
+                logger.info(`${root} 目录查看成功`);
+                this.emit('sftp:viewSuccess', root);
                 return {
                     code: SUCCESS_CODE,
                     data: root
                 };
             }).catch((err) => {
 
-                logger.error(`${root} 目录删除失败`);
+                logger.error(`${root} 目录查看失败`);
                 return {
                     code: ERROR_CODE,
                     error: err,
-                    msg: `${root} 目录删除失败`
+                    msg: `${root} 目录查看失败`
                 }
             });;
     }
 
     public close() {
         this.client.end();
+        logger.info('ftp 服务关闭');
+        this.emit('sftp:close');
     }
 
     /**

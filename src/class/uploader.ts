@@ -8,13 +8,14 @@ import merge from 'lodash/merge';
 import PromiseLimit from 'p-limit';
 
 import { UPLOAD_MODE } from '../const/common';
-import { logger, setLogInfo } from '../util/log';
+import { setLogInfo } from '../util/log';
 import { getFiles, getDirectory, parseFiles } from '../util/util';
 import { UploadMode, OprStatus } from '../type/common';
 
 export interface IUploader {
     connect();
-    put(filePath: string, remoteDir?: string): Promise<OprStatus>;
+
+    // put(filePath: string, remoteDir?: string): Promise<OprStatus>;`
     delete(remoteFile?: string): Promise<OprStatus>;
     list(): Promise<OprStatus>;
     close();
@@ -22,6 +23,7 @@ export interface IUploader {
 }
 
 export default class Uploader extends EventEmitter {
+    protected options;
 
     constructor(opt) {
         super();
@@ -54,14 +56,14 @@ export default class Uploader extends EventEmitter {
      * @param [remoteDir]   上传到目标路径
      * @param [mode]        指定上传模式
      */
-    public async upload(curPath: string|string[], remoteDir?: string, mode?: UploadMode): Promise<Record<string, any>> {
+    public async upload(curPath: string | string[], remoteDir?: string, mode?: UploadMode): Promise<Record<string, any>> {
         let remote = remoteDir ?? this.options.root,
             uploadMode = mode ?? this.options.mode,
             extName = this.options.ext;
 
         // 并发控制
         const concurrentLimit = PromiseLimit(this.options.concurrency);
-        
+
         let files = parseFiles(curPath, extName),
             dirList: string[] = getDirectory(files, remote),
             fileList: string[] = getFiles(files),
@@ -85,7 +87,7 @@ export default class Uploader extends EventEmitter {
 
         return Promise.all(uploadList);
     }
-    
+
     public put(filePath: string, remoteDir?: string): Promise<OprStatus> {
         throw new Error('必须重写 put 方法');
     }
@@ -100,31 +102,6 @@ export default class Uploader extends EventEmitter {
 
     public mkdir(remote: string): Record<string, any> {
         throw new Error('必须重写 mkdir 方法');
-    }
-
-    public onReady() {
-        logger.info('连接成功');
-        this.emit('upload:ready');
-    }
-
-    public onStart() {
-        logger.info('开始上传');
-        this.emit('upload:start', this.options);
-    }
-
-    public onSuccess(file?) {
-        logger.info(`上传成功：${file}`);
-        this.emit('upload:success');
-    }
-
-    public onFailure(e) {
-        logger.error(`上传失败：${e}`);
-        this.emit('upload:failure', this.options, e);
-    }
-
-    public onFileUpload(file) {
-        logger.info(`准备上传文件：${file}`);
-        this.emit('upload:file', this.options, file);
     }
 
     /**

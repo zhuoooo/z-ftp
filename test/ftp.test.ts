@@ -4,6 +4,7 @@
 
 import ftp from 'ftp';
 import FtpClient from '../src/ftp/index';
+
 import {
     ERROR_CODE,
     SUCCESS_CODE
@@ -22,6 +23,7 @@ let initMock = jest.fn(() => { });
 
 jest.mock('ftp', () => {
     return jest.fn().mockImplementation(() => {
+
         return {
             connect: initMock,
             delete: jest.fn((file, cb) => {
@@ -82,7 +84,7 @@ describe('ftp功能测试', () => {
         let client = new FtpClient(opt);
 
         client.connect();
-        client.emit('ftp:connected');
+        client.emit('connected');
 
         expect(initMock).toBeCalled();
     });
@@ -92,7 +94,7 @@ describe('ftp功能测试', () => {
 
         client.connect();
         jest.setTimeout(100);
-        client.emit('ftp:error', new Error('连接失败'));
+        client.emit('error', new Error('连接失败'));
 
         expect(initMock).toBeCalledTimes(2);
     });

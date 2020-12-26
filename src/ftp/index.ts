@@ -11,6 +11,8 @@ import { FtpConnectOptions, OprStatus } from '../type/common';
 import { logger } from '../util/log';
 
 export default class Ftp extends Uploader implements IUploader {
+    private client: FtpNode;
+
     constructor(opt: FtpConnectOptions) {
         super(opt);
 
@@ -23,7 +25,6 @@ export default class Ftp extends Uploader implements IUploader {
         });
 
         this.client.on('ready', () => {
-            // this.onReady();
             logger.info('ftp 连接成功');
             this.emit('ftp:connected');
         });
@@ -37,7 +38,6 @@ export default class Ftp extends Uploader implements IUploader {
         });
         this.client.on('error', (err) => {
             this.emit('ftp:error', err);
-            // logger.error('ftp 出错: ' + JSON.stringify(err));
         });
     }
 
@@ -55,13 +55,13 @@ export default class Ftp extends Uploader implements IUploader {
         this.client.connect(this.options);
 
         return new Promise((resolve, reject) => {
-            this.once('ftp:connected', () => {
+            this.once('connected', () => {
                 resolve({
                     code: SUCCESS_CODE
                 });
             });
 
-            this.once('ftp:error', (err) => {
+            this.once('error', (err) => {
 
                 reject(err);
             });
@@ -89,7 +89,7 @@ export default class Ftp extends Uploader implements IUploader {
 
         return new Promise((resolve) => {
 
-            this.on('ftp:connected', () => {
+            this.on('connected', () => {
                 resolve({
                     code: SUCCESS_CODE,
                     data: this.options
@@ -112,6 +112,7 @@ export default class Ftp extends Uploader implements IUploader {
                 }
 
                 logger.info(`${file} 文件删除成功`);
+                this.emit('ftp:delete', file);
                 resolve({
                     code: SUCCESS_CODE,
                     data: file
@@ -124,10 +125,14 @@ export default class Ftp extends Uploader implements IUploader {
     public async put(currentFile: string, remoteFile: string): Promise<OprStatus> {
 
         return new Promise((resolve, reject) => {
-            this.onFileUpload(currentFile);
+
+            this.emit('ftp:uploading', currentFile);
+            logger.info(`正在上传：${currentFile}`);
+
             this.client.put(currentFile, remoteFile, (err) => {
                 if (err) {
-                    this.onFailure(err);
+                    logger.error(`上传失败：${err}`);
+                    this.emit('ftp:uploadFailure', this.options, err);
                     reject({
                         code: ERROR_CODE,
                         error: err,
@@ -135,7 +140,8 @@ export default class Ftp extends Uploader implements IUploader {
                     });
                 }
 
-                this.onSuccess(remoteFile);
+                logger.info(`上传成功：${remoteFile}`);
+                this.emit('ftp:uploadSuccess', remoteFile);
                 resolve({
                     code: SUCCESS_CODE,
                     data: currentFile
@@ -168,6 +174,7 @@ export default class Ftp extends Uploader implements IUploader {
                 }
 
                 logger.info(`${remote} 目录创建成功`);
+                this.emit('ftp:mkdirSuccess');
                 resolve({
                     code: SUCCESS_CODE,
                     data: remote
@@ -194,6 +201,7 @@ export default class Ftp extends Uploader implements IUploader {
                 }
 
                 logger.info(`查看 ${root} 目录`);
+                this.emit('ftp:viewSuccess', root);
                 resolve({
                     code: SUCCESS_CODE,
                     data: list
